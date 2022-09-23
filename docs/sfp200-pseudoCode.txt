@@ -1,0 +1,73 @@
+
+
+
+deviceId = 0xA100201;
+responseId = 0xA100200;
+
+getPartName(deviceId){
+    getPartName0 (address 0x01)
+    getPartName1 (address 0x02)
+    getPartName2 (address 0x03)
+    getPartName3 (address 0x04)
+    makePartNameString & return it
+}
+
+getVersion(deviceId){
+    getVersion0 (address 0x05)
+    getVersion1 (address 0x06)
+    getVersion2 (address 0x07)
+    makeVersionString & return it
+}
+
+getSerial(deviceId){
+    getSerialNumber0 (address 0x08)
+    getSerialNumber1 (address 0x09)
+    getSerialNumber2 (address 0x0A)
+    getSerialNumber3 (address 0x0B)
+    makeSerialNumberString & return it
+}
+
+getCurrent(deviceId){
+    getCurrent (address 0x20)
+    return curent in microAmps as 32 bit signed int
+}
+
+resetCoulombCount(deviceId){
+    getCoulombCountLowAndReset (address 0x42)
+    getCoulombCountHigh? (address 0x41)
+    return nothing
+}
+
+getCoulombCount(deviceId){
+    getCoulombCountLow (address 0x40)
+    getCoulombCountHigh (address 0x41)
+    makeCoulombCount 64 bit number & return it in micro coulombs
+}
+
+getVoltage(deviceId,voltageId){
+    //there are 3 voltages... not sure we need to collect them all
+    getVoltage in micro volts (0x60, 0x61, 0x62)
+    return it
+}
+
+getTemperature(deviceId){
+    getTemperature (address 0x80)
+    return temp in milli celcius? & return it
+}
+
+
+Pseudo-code for Current and Voltage received data reassembly by the host:
+// Example raw data from SFP module
+unsigned char byte1 = 0xFF;
+unsigned char byte2 = 0x45;
+unsigned char byte3 = 0xA1;
+unsigned char byte4 = 0x34;
+// Assembling to 32 bit unsigned integer
+unsigned int reassembled_data = 0;
+reassembled_data |= byte1 << 24;
+reassembled_data |= byte2 << 16;
+reassembled_data |= byte3 <<  8;
+reassembled_data |= byte4 <<  0;
+// Converting to volts
+float voltage = (int)(reassembled_data) / 1000000.0f;
+// Calculated value is -12.213964 Volts
