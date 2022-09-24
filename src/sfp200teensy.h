@@ -4,28 +4,31 @@
 // Included to avoid the missing types
 #include <Arduino.h>
 
+// Set the target device
+void set_target_device(uint32_t device);
+
 // Get the Part Name
-String getPartName(uint32_t deviceId);
+String getPartName();
 
 // Get the Version of the part
-String getVersion(uint32_t deviceId);
+String getVersion();
 
 // Get the Serial of the part
-String getSerial(uint32_t deviceId);
+String getSerial();
 
 // Get the current measurement, in milliAmps
-double getCurrent(uint32_t deviceId);
+double getCurrent();
 
 // Reset the Coulomb Counterial
-void resetCoulombCount(uint32_t deviceId);
+void resetCoulombCount();
 
 // Get the Coulomb count
-double getCoulombCount(uint32_t deviceId);
+double getCoulombCount();
 
 // Get the voltage
-double getVoltage(uint32_t deviceId, int voltageId);
+double getVoltage(int voltageId);
 
 // Get the temperature of the device
-double getTemperature(uint32_t deviceId);
+double getTemperature();
 
 #endif /* SFP200TEENSY_H */

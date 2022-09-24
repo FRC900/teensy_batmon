@@ -4,14 +4,9 @@
 #include <SD.h>
 #include <FlexCAN_T4.h>
 #include <NativeEthernet.h>
-//#include <NativeEthernetServer.h>
-//#include <NativeEthernetClient.h>
-//#include <Ethernet.h>
-//#include <QTRSensors.h>
 #include "sfp200teensy.h"
 
 // ROS Libs
-//#include <ArduinoTcpHardware.h>
 #define ROSSERIAL_ARDUINO_TCP  // To use the TCP version of rosserial_arduino
 #include <ros.h>
 #include <std_msgs/String.h>
@@ -21,13 +16,14 @@
 //  started immediately after the EXTMEM variables.
 EXTMEM char bigBuffer[1000000];
 
-// Variables
+// LED
 int ledpin = 13;  // Pin on the onboard LED
-int ledState = LOW;  // ledState used to set the LED
 
 // Declare CAN interface
 FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> myCan;
-//static uint8_t hex[17] = "0123456789abcdef";
+
+// And the battery monitor to talk to
+const uint32_t battery_monitor = 0x0A100201;
 
 // Ethernet MAC & IP
 byte mac[] = {0xde, 0xad, 0xbe, 0xef, 0x13, 0x37};
@@ -42,21 +38,15 @@ ros::Publisher chatter("chatter", &str_msg);  // The ROS publisher
 IPAddress server(10,9,0,8);
 const uint16_t serverPort = 11411;
 
-/*
-// QTR Sensor Stuff:
-QTRSensors qtr;
-const uint8_t sensorCount = 8;
-uint16_t sensorValues[sensorCount];
-*/
-
 void setup() {
   // Setup Serial
-  delay(5000);
   Serial.begin(9600);
 
   // WARNING: Serial communication is borked on macOS, so if you're using a mac, comment out this line
   // Otherwise it'll keep trying to setup serial infinitely and infinitely fail
-  while(!Serial) {; };
+  while(!Serial);
+
+  // Show that the Teensy is online
   Serial.println("Begin Teensy Startup Process");
 
   // Set the pinmode for the LED
@@ -92,21 +82,11 @@ void setup() {
   nh.initNode();
   nh.advertise(chatter);
 
-  // Reset Coulomb Count
-  resetCoulombCount(0x0A100201);
+  // Start the SFP lib & tell it what device to talk to
+  set_target_device(battery_monitor);
 
-/*
-  //Check for and read the barcode on the battery:
-  qtr.setTypeRC();
-  qtr.setSensorPins((const uint8_t[]){3,4,5,6,7,8,9,10}, sensorCount);
-  qtr.setEmitterPin(2);
-  delay(5);
-  qtr.read(sensorValues);//read more than once?
-  //values will be 0 to 2500, 0 is max reflectance (white), 2500 is minimum reflectance (black)
-  for(uint8_t i = 0; i < sensorCount; i++){
-    Serial.println(sensorValues[i]);
-  }
-*/
+  // Reset Coulomb Count
+  resetCoulombCount();
 }
 
 void loop() {
@@ -122,41 +102,27 @@ void loop() {
   */
 
   // The Heartbeat (LED blinking)
-  if(ledState == LOW){
-    ledState = HIGH;
-    digitalWrite(ledpin, ledState);
-  }
-  else{
-    ledState = LOW;
-    digitalWrite(ledpin, ledState);
-  }
+  digitalWrite(ledpin, HIGH);
   
   // All if the power information collected
-  Serial.println(getPartName(0x0A100201));
-  Serial.println(getVersion(0x0A100201));
-  Serial.println(getSerial(0x0A100201));
-  Serial.println(getVoltage(0x0A100201, 1));
-  Serial.println(getVoltage(0x0A100201, 2));
-  Serial.println(getVoltage(0x0A100201, 3));
-  Serial.println(getCurrent(0x0A100201));
-  Serial.println(getCoulombCount(0x0A100201));
-  Serial.println(getTemperature(0x0A100201));
+  Serial.println(getPartName());
+  Serial.println(getVersion());
+  Serial.println(getSerial());
+  Serial.println(getVoltage(1));
+  Serial.println(getVoltage(2));
+  Serial.println(getVoltage(3));
+  Serial.println(getCurrent());
+  Serial.println(getCoulombCount());
+  Serial.println(getTemperature());
 
   // The Heartbeat
-  if(ledState == LOW){
-    ledState = HIGH;
-    digitalWrite(ledpin, ledState);
-  }
-  else{
-    ledState = LOW;
-    digitalWrite(ledpin, ledState);
-  }
+  digitalWrite(ledpin, LOW);
 
   // ROS Stuff
   str_msg.data = "hello world!";
   chatter.publish( &str_msg );
   nh.spinOnce();
 
-  //delay
+  // Delay, for the heartbeat
   delay(1000);
 }
