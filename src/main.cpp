@@ -1,16 +1,17 @@
+// on ros side run
+// rosrun rosserial_python serial_node.py _port:=/dev/ttyACM0 _baud:=115200
+
 // Libraries
 #include <Arduino.h>
 #include <SPI.h>
 #include <SD.h>
 #include <FlexCAN_T4.h>
-#include <NativeEthernet.h>
 #include "sfp200teensy.h"
-
 // ROS Libs
-#define ROSSERIAL_ARDUINO_TCP  // To use the TCP version of rosserial_arduino
 #include <ros.h>
 #include <std_msgs/String.h>
-
+// custom power message type
+#include "rosserial_msgs/Power.h"
 // Allocate PSRAM
 //  If PSRAM has been added, extmem_malloc() may be used to allocate this memory,
 //  started immediately after the EXTMEM variables.
@@ -25,18 +26,15 @@ FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> myCan;
 // And the battery monitor to talk to
 const uint32_t battery_monitor = 0x0A100201;
 
-// Ethernet MAC & IP
-byte mac[] = {0xde, 0xad, 0xbe, 0xef, 0x13, 0x37};
-IPAddress ip(10,9,0,20);
+// And the battery monitor to talk to
+const uint32_t battery_monitor = 0x0A100201;
 
 // Declare ROS Stuff
 ros::NodeHandle nh;  // Node handler
 std_msgs::String str_msg;
+rosserial_msgs::Power power_msg;
 ros::Publisher chatter("chatter", &str_msg);  // The ROS publisher
-
-// The ROSSerial server IP & port
-IPAddress server(10,9,0,8);
-const uint16_t serverPort = 11411;
+ros::Publisher power_info("power_info", &power_msg);  // The ROS publisher
 
 void setup() {
   // Setup Serial
@@ -65,22 +63,12 @@ void setup() {
   myCan.begin();
   myCan.setBaudRate(500000);
 
-  // Enable Ethernet:
-  if (Ethernet.linkStatus() == LinkOFF) {
-    Serial.println("Ethernet cable is not connected.");
-  }
-  else {
-    Ethernet.begin(mac, ip);
-    Serial.println("");
-    Serial.println("Ethernet connected");
-    Serial.println("IP address: ");
-    Serial.println(Ethernet.localIP());
-  }
-
   // Bring up ROS
-  nh.getHardware()->setConnection(server, serverPort);
   nh.initNode();
   nh.advertise(chatter);
+  nh.advertise(power_info);
+  // Start the SFP lib & tell it what device to talk to
+  set_target_device(battery_monitor);
 
   // Start the SFP lib & tell it what device to talk to
   set_target_device(battery_monitor);
@@ -94,7 +82,7 @@ void loop() {
   RESET Counts - assume full battery
   Verify ROS Coms?
   0-Blink an LED
-  1-Read Battery Barcode
+  //1-Read Battery Barcode
   2-Read Battery Info from CAN
   3-Publish Battery Label and Coulomb Count
   4-Log to SD Card
@@ -104,7 +92,37 @@ void loop() {
   // The Heartbeat (LED blinking)
   digitalWrite(ledpin, HIGH);
   
+  power_msg.partName = "hello world!";
+  power_msg.version = "hello world!";
+  power_msg.serialString = "hello world!";
+  power_msg.voltage1 = 0.56712;
+  power_msg.voltage2 = 0.9999;
+  power_msg.voltage3 = 2.0;
+  power_msg.current = 0.56712;
+  power_msg.coulombs = 0.56712;
+  power_msg.temp = 99.29;
+
+  power_info.publish(&power_msg);
+  chatter.publish( &str_msg );
+
+  
+  // open the file.
+  File dataFile = SD.open("datalog.txt", FILE_WRITE);
+
+  // if the file is available, write to it:
+  if (dataFile) {
+    dataFile.println(dataString);
+    dataFile.close();
+    // print to the serial port too:
+    Serial.println(dataString);
+  } else {
+    // if the file isn't open, pop up an error:
+    Serial.println("error opening datalog.txt");
+  }
+  
+
   // All if the power information collected
+  /*
   Serial.println(getPartName());
   Serial.println(getVersion());
   Serial.println(getSerial());
@@ -114,13 +132,12 @@ void loop() {
   Serial.println(getCurrent());
   Serial.println(getCoulombCount());
   Serial.println(getTemperature());
+  */
 
   // The Heartbeat
   digitalWrite(ledpin, LOW);
 
   // ROS Stuff
-  str_msg.data = "hello world!";
-  chatter.publish( &str_msg );
   nh.spinOnce();
 
   // Delay, for the heartbeat
