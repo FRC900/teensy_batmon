@@ -26,7 +26,8 @@ void sendCANMessage(uint32_t addressId) {
     candev1.write(canmsg);
 }
 
-// Get the device's name
+// Get the device's name 
+// 8ms delay
 String getPartName() {
     CAN_message_t partNameMsg;
     String partName = "";
@@ -65,7 +66,8 @@ String getPartName() {
 }
 
 // Get the device's version info
-String getVersion() {
+// 6ms delay
+String getVersion() { 
     CAN_message_t versionMsg;
     String version = "";
 
@@ -94,7 +96,7 @@ String getVersion() {
 
     return version;
 }
-
+// 8ms delay
 String getSerial() {
     CAN_message_t serialMsg;
     String serialString = "";
@@ -134,6 +136,7 @@ String getSerial() {
     return serialString;
 }
 
+// 2 ms delay
 double getCurrent() {
     CAN_message_t currentMsg;
     double current = 0;
@@ -172,6 +175,7 @@ void resetCoulombCount() {
     delay(2000);
 }
 
+// 4ms delay 
 double getCoulombCount() {
     CAN_message_t coulombMsg;
     unsigned int coulombCountLowRaw = 0;
@@ -198,6 +202,7 @@ double getCoulombCount() {
     return coulombs;
 }
 
+// 6ms delay
 double getVoltage(int voltageId) {
     CAN_message_t voltageMsg;
     double voltage = 0;
@@ -240,6 +245,7 @@ double getVoltage(int voltageId) {
     return voltage;
 }
 
+// 2ms delay
 double getTemperature() {
     CAN_message_t temperatureMsg;
     double temperature = 0;
