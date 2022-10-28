@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "ros/msg.h"
+#include "std_msgs/Header.h"
 
 namespace rosserial_msgs
 {
@@ -12,6 +13,8 @@ namespace rosserial_msgs
   class Power : public ros::Msg
   {
     public:
+      typedef std_msgs::Header _header_type;
+      _header_type header;
       typedef const char* _partName_type;
       _partName_type partName;
       typedef const char* _version_type;
@@ -32,6 +35,7 @@ namespace rosserial_msgs
       _temp_type temp;
 
     Power():
+      header(),
       partName(""),
       version(""),
       serialString(""),
@@ -47,6 +51,7 @@ namespace rosserial_msgs
     virtual int serialize(unsigned char *outbuffer) const override
     {
       int offset = 0;
+      offset += this->header.serialize(outbuffer + offset);
       uint32_t length_partName = strlen(this->partName);
       varToArr(outbuffer + offset, length_partName);
       offset += 4;
@@ -152,6 +157,7 @@ namespace rosserial_msgs
     virtual int deserialize(unsigned char *inbuffer) override
     {
       int offset = 0;
+      offset += this->header.deserialize(inbuffer + offset);
       uint32_t length_partName;
       arrToVar(length_partName, (inbuffer + offset));
       offset += 4;
@@ -273,7 +279,7 @@ namespace rosserial_msgs
     }
 
     virtual const char * getType() override { return "rosserial_msgs/Power"; };
-    virtual const char * getMD5() override { return "819433cd1e1c7d0e31d58345514f76f2"; };
+    virtual const char * getMD5() override { return "022c121e79aa6e6764f9a2825fc5e279"; };
 
   };
 

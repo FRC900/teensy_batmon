@@ -15,7 +15,8 @@
 #include <ros.h>
 #include <std_msgs/String.h>
 // custom power message type
-#include "rosserial_msgs/Power.h"
+#include "Power.h"
+#include <tf2_msgs/TFMessage.h>
 // Allocate PSRAM
 //  If PSRAM has been added, extmem_malloc() may be used to allocate this memory,
 //  started immediately after the EXTMEM variables.
@@ -34,6 +35,14 @@ const uint32_t battery_monitor = 0x0A100201;
 ros::NodeHandle nh;  // Node handler
 rosserial_msgs::Power power_msg;
 ros::Publisher power_info("power_info", &power_msg);  // The ROS publisher
+tf2_msgs::TFMessage time_msg;
+double currenttime = 0;
+void tf_callback(const tf2_msgs::TFMessage &msg) {
+  if (msg.transforms_length >= 1) {
+    currenttime = msg.transforms[0].header.stamp.toSec();
+  }
+}
+ros::Subscriber<tf2_msgs::TFMessage> time_sub("/tf", &tf_callback);
 
 String partName, version, serialString;
 double voltage1, voltage2, voltage3, current, coulombs, temp;
@@ -164,6 +173,7 @@ void loop() {
   //Serial.println(delta);
 
   // Doesn't work, strings are hard
+  power_msg.header.stamp.fromSec(currenttime);
   power_msg.partName = str2chr(partName);
   power_msg.version = str2chr(version);
   power_msg.serialString = str2chr(serialString);
@@ -176,10 +186,12 @@ void loop() {
   power_msg.temp = temp;
 
   power_info.publish(&power_msg);
+  char buffer[256];
+  sprintf(buffer, "power_%f.csv", currenttime);
   // would be nice to get the time from ros, but all the header are relative to ros start time not 1970 
-  dataFile = SD.open("data2.txt", FILE_WRITE);
+  dataFile = SD.open(buffer, FILE_WRITE);
   if (fileOpen == false) {
-    dataFile.println("partName,version,serialString,voltage1,voltage2,voltage3,current,coulombs,temp,delta");
+    dataFile.println("partName,version,serialString,voltage1,voltage2,voltage3,current,coulombs,temp,delta,rostimestamp");
     fileOpen = true;
   }
 
@@ -194,7 +206,7 @@ void loop() {
   // if the file is available, write to it:
   if (dataFile) {
     // write power msg to file as a csv in one line of code
-    dataFile.println(String(partName) + "," + String(version) + "," + String(serialString) + "," + String(voltage1) + "," + String(voltage2) + "," + String(voltage3) + "," + String(current) + "," + String(coulombs) + "," + String(temp) + "," + String(delta));
+    dataFile.println(String(partName) + "," + String(version) + "," + String(serialString) + "," + String(voltage1) + "," + String(voltage2) + "," + String(voltage3) + "," + String(current) + "," + String(coulombs) + "," + String(temp) + "," + String(delta) + "," + String(currenttime));
     dataFile.close();
   } else {
     // if the file isn't open, pop up an error:
@@ -214,6 +226,9 @@ void loop() {
   Serial.println(getCurrent());
   Serial.println(getCoulombCount());
   Serial.println(getTemperature());
+  Serial.println("Time");
+  Serial.println(currenttime);
+  delay(200);
   */
   // ROS Stuff
   nh.spinOnce();
